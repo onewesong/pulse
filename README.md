@@ -69,6 +69,18 @@ sudo systemctl enable --now pulse
 
 `pulse` 用户通过 `SupplementaryGroups=docker` 访问 `/var/run/docker.sock`。Docker Socket 可以控制宿主机上的容器，通常等同于接近 root 的权限；请只在可信主机上运行，并保护 Pulse 服务账号。
 
+## 发布版本
+
+推送与 `Cargo.toml` 版本一致的 `v*` 标签后，GitHub Actions 会自动执行格式检查、测试和 Clippy，构建 Linux x86_64 release 包，并创建带 SHA-256 校验文件的 GitHub Release。
+
+```bash
+# 先更新 Cargo.toml 和 Cargo.lock 中的版本并提交
+make tag VERSION=0.1.0
+git push origin v0.1.0
+```
+
+标签包含预发布后缀时（例如 `v0.2.0-rc.1`），生成的 GitHub Release 会自动标记为 Pre-release。标签版本与 `Cargo.toml` 不一致时，工作流会拒绝发布。
+
 ## HTTP API
 
 - `GET /api/v1/containers`

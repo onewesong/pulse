@@ -14,7 +14,7 @@ SERVICE_SOURCE := packaging/pulse.service
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build release fmt fmt-check test clippy check run clean install uninstall
+.PHONY: help build release fmt fmt-check test clippy check run clean install uninstall tag
 
 help: ## 显示可用命令
 	@awk 'BEGIN {FS = ":.*## "; printf "Pulse 常用命令：\n\n"} /^[a-zA-Z_-]+:.*## / {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -58,4 +58,12 @@ uninstall: ## 删除由 make install 安装的文件
 	rm -f $(DESTDIR)$(PREFIX)/bin/$(BINARY)
 	rm -f $(DESTDIR)$(SYSCONFDIR)/pulse/config.toml
 	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/pulse.service
+
+tag: ## 创建发布标签，用法：make tag VERSION=0.1.0
+	@test -n "$(VERSION)" || { echo "请指定 VERSION，例如 make tag VERSION=0.1.0" >&2; exit 1; }
+	@test -z "$$(git status --porcelain)" || { echo "工作区不干净，请先提交变更" >&2; exit 1; }
+	@crate_version="$$(sed -n '/^\[package\]/,/^\[/s/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n1)"; \
+		test "$(VERSION)" = "$$crate_version" || { echo "VERSION=$(VERSION) 与 Cargo.toml 的 $$crate_version 不一致" >&2; exit 1; }
+	git tag -a "v$(VERSION)" -m "Release v$(VERSION)"
+	@echo "标签 v$(VERSION) 已创建；运行 git push origin v$(VERSION) 触发自动发布"
 

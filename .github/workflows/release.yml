@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish Linux release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+
+      - name: Cache Cargo files
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: release-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            release-${{ runner.os }}-
+
+      - name: Validate tag version
+        shell: bash
+        run: |
+          crate_version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "pulse") | .version')"
+          expected_tag="v${crate_version}"
+          if [[ "${GITHUB_REF_NAME}" != "${expected_tag}" ]]; then
+            echo "标签 ${GITHUB_REF_NAME} 与 Cargo.toml 版本 ${crate_version} 不一致" >&2
+            exit 1
+          fi
+
+      - name: Run quality checks
+        run: make check
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Package release
+        shell: bash
+        run: |
+          target="x86_64-unknown-linux-gnu"
+          package="pulse-${GITHUB_REF_NAME}-${target}"
+          mkdir -p "dist/${package}/config" "dist/${package}/packaging"
+          install -m755 target/release/pulse "dist/${package}/pulse"
+          install -m644 README.md LICENSE "dist/${package}/"
+          install -m644 config/pulse.toml "dist/${package}/config/"
+          install -m644 packaging/pulse.service "dist/${package}/packaging/"
+          tar -C dist -czf "dist/${package}.tar.gz" "${package}"
+          rm -rf "dist/${package}"
+          cd dist
+          sha256sum *.tar.gz > SHA256SUMS
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          prerelease=()
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            prerelease+=(--prerelease)
+          fi
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --verify-tag \
+            --generate-notes \
+            --title "Pulse ${GITHUB_REF_NAME}" \
+            "${prerelease[@]}"
+
