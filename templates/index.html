@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Pulse Docker 容器指标控制台">
+  <title>Pulse · 容器指标</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" data-nav><span class="brand-mark">P</span><span>Pulse</span></a>
+    <div class="collector-state"><span id="status-dot" class="status-dot pending"></span><span id="status-text">正在连接采集器…</span></div>
+    <span class="version">v{{ version }}</span>
+  </header>
+
+  <main id="dashboard-page" class="page">
+    <section class="hero">
+      <div><p class="eyebrow">DOCKER OBSERVABILITY</p><h1>容器运行态势</h1><p class="subtitle">本机资源趋势、生命周期事件和可供 AI 使用的分析数据。</p></div>
+      <button id="refresh-button" class="button">立即刷新</button>
+    </section>
+    <section class="stats-grid">
+      <article class="stat-card"><span>运行中</span><strong id="running-count">—</strong><small>容器</small></article>
+      <article class="stat-card"><span>已停止</span><strong id="stopped-count">—</strong><small>历史容器</small></article>
+      <article class="stat-card"><span>总 CPU</span><strong id="cpu-total">—</strong><small>当前采样</small></article>
+      <article class="stat-card"><span>总内存</span><strong id="memory-total">—</strong><small>工作集</small></article>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><h2>容器</h2><p id="last-updated">等待首轮数据</p></div><label class="search"><span>⌕</span><input id="search-input" type="search" placeholder="搜索名称、镜像或 ID" autocomplete="off"></label></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>容器</th><th>状态</th><th>CPU</th><th>内存</th><th>网络 I/O</th><th>块 I/O</th><th>PID</th></tr></thead><tbody id="container-rows"><tr><td colspan="7" class="empty">正在加载容器…</td></tr></tbody></table>
+      </div>
+    </section>
+  </main>
+
+  <main id="detail-page" class="page hidden">
+    <button id="back-button" class="back">← 返回全部容器</button>
+    <section class="detail-hero">
+      <div><div class="detail-title"><span id="detail-state" class="state-pill">—</span><h1 id="detail-name">容器</h1></div><p id="detail-meta" class="subtitle">—</p></div>
+      <div id="range-buttons" class="ranges"><button data-range="3600000" class="active">1 小时</button><button data-range="21600000">6 小时</button><button data-range="86400000">24 小时</button><button data-range="604800000">7 天</button><button data-range="2592000000">30 天</button></div>
+    </section>
+    <section id="detail-latest" class="stats-grid compact"></section>
+    <section class="chart-grid">
+      <article class="chart-card"><div><h2>CPU</h2><p>容器使用率</p></div><canvas id="cpu-chart"></canvas></article>
+      <article class="chart-card"><div><h2>内存</h2><p>工作集与限制</p></div><canvas id="memory-chart"></canvas></article>
+      <article class="chart-card"><div><h2>网络</h2><p>每秒收发速率</p></div><canvas id="network-chart"></canvas></article>
+      <article class="chart-card"><div><h2>块 I/O</h2><p>每秒读写速率</p></div><canvas id="block-chart"></canvas></article>
+    </section>
+    <section class="panel events-panel"><div class="panel-head"><div><h2>生命周期事件</h2><p>所选时间范围内的 Docker 事件</p></div><a id="analysis-link" class="button secondary" href="#">分析上下文 JSON</a></div><ol id="event-list" class="event-list"><li class="empty">暂无事件</li></ol></section>
+  </main>
+
+  <div id="toast" class="toast hidden" role="alert"></div>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>
+

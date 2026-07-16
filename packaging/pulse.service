@@ -1,0 +1,30 @@
+[Unit]
+Description=Pulse Docker Container Metrics
+After=docker.service network.target
+Wants=docker.service
+
+[Service]
+Type=simple
+User=pulse
+Group=pulse
+SupplementaryGroups=docker
+ExecStart=/usr/local/bin/pulse serve --config /etc/pulse/config.toml
+Restart=on-failure
+RestartSec=5s
+Environment=RUST_LOG=pulse=info,tower_http=info
+WorkingDirectory=/var/lib/pulse
+StateDirectory=pulse
+StateDirectoryMode=0750
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target

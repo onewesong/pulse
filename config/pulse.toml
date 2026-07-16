@@ -1,0 +1,22 @@
+[docker]
+socket = "/var/run/docker.sock"
+timeout_seconds = 10
+
+[database]
+path = "/var/lib/pulse/pulse.db"
+
+[web]
+listen = "127.0.0.1:8080"
+max_points = 2000
+
+[collector]
+interval_seconds = 15
+retention_days = 30
+concurrency = 16
+
+[filters]
+# 为空时采集全部容器。非空 include 按“任一匹配”，exclude 优先。
+# 选择器支持 "key" 或 "key=value"。
+include_labels = []
+exclude_labels = ["pulse.ignore=true"]
+

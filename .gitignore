@@ -1,0 +1,6 @@
+/target/
+/.data/
+/pulse.db
+/pulse.db-shm
+/pulse.db-wal
+/.env
