@@ -1,0 +1,29 @@
+services:
+  pulse:
+    image: ghcr.io/onewesong/pulse:latest
+    container_name: pulse
+    restart: unless-stopped
+    labels:
+      pulse.ignore: "true"
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      PULSE_DATABASE__PATH: /data/pulse.db
+      PULSE_WEB__LISTEN: 0.0.0.0:8080
+      PULSE_DOCKER__SOCKET: /var/run/docker.sock
+      PULSE_FILTERS__EXCLUDE_LABELS: pulse.ignore=true
+    volumes:
+      - pulse-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+
+volumes:
+  pulse-data:
+

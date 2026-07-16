@@ -1,6 +1,8 @@
 SHELL := /bin/bash
 
 CARGO ?= cargo
+DOCKER ?= docker
+IMAGE ?= pulse:dev
 PREFIX ?= /usr/local
 SYSCONFDIR ?= /etc
 SYSTEMD_UNIT_DIR ?= /etc/systemd/system
@@ -14,7 +16,7 @@ SERVICE_SOURCE := packaging/pulse.service
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build release fmt fmt-check test clippy scripts-check check run clean install uninstall tag
+.PHONY: help build release fmt fmt-check test clippy scripts-check check run clean install uninstall tag docker-build docker-compose-check docker-up docker-down
 
 help: ## 显示可用命令
 	@awk 'BEGIN {FS = ":.*## "; printf "Pulse 常用命令：\n\n"} /^[a-zA-Z_-]+:.*## / {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -57,6 +59,18 @@ run: ## 使用 .data/pulse.db 启动本地开发服务
 	RUST_LOG=$(RUST_LOG) \
 	$(CARGO) run -- serve
 
+docker-build: ## 构建本地 Docker 镜像
+	$(DOCKER) build --build-arg VERSION=dev --tag $(IMAGE) .
+
+docker-compose-check: ## 校验 Compose 配置
+	$(DOCKER) compose -f compose.yml config --quiet
+
+docker-up: ## 使用 Compose 启动 GHCR 镜像
+	$(DOCKER) compose -f compose.yml up --detach
+
+docker-down: ## 停止 Compose 服务并保留指标数据卷
+	$(DOCKER) compose -f compose.yml down
+
 clean: ## 清理 Cargo 构建产物
 	$(CARGO) clean
 
@@ -70,8 +84,8 @@ uninstall: ## 删除由 make install 安装的文件
 	rm -f $(DESTDIR)$(SYSCONFDIR)/pulse/config.toml
 	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/pulse.service
 
-tag: ## 创建发布标签，用法：make tag VERSION=0.1.0
-	@test -n "$(VERSION)" || { echo "请指定 VERSION，例如 make tag VERSION=0.1.0" >&2; exit 1; }
+tag: ## 创建发布标签，用法：make tag VERSION=0.1.2
+	@test -n "$(VERSION)" || { echo "请指定 VERSION，例如 make tag VERSION=0.1.2" >&2; exit 1; }
 	@test -z "$$(git status --porcelain)" || { echo "工作区不干净，请先提交变更" >&2; exit 1; }
 	@crate_version="$$(sed -n '/^\[package\]/,/^\[/s/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n1)"; \
 		test "$(VERSION)" = "$$crate_version" || { echo "VERSION=$(VERSION) 与 Cargo.toml 的 $$crate_version 不一致" >&2; exit 1; }

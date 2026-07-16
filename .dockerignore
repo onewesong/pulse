@@ -1,0 +1,14 @@
+.git
+.github
+.data
+target
+dist
+scripts
+packaging
+config
+*.db
+*.db-shm
+*.db-wal
+README*.md
+LICENSE
+
