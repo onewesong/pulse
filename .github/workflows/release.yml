@@ -49,7 +49,12 @@ jobs:
           fi
 
       - name: Run quality checks
-        run: make check
+        run: |
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --yes shellcheck
+          fi
+          REQUIRE_SHELLCHECK=1 make check
 
       - name: Build release binary
         run: cargo build --release --locked
@@ -59,15 +64,21 @@ jobs:
         run: |
           target="x86_64-unknown-linux-gnu"
           package="pulse-${GITHUB_REF_NAME}-${target}"
+          archive="pulse-${target}.tar.gz"
           mkdir -p "dist/${package}/config" "dist/${package}/packaging"
           install -m755 target/release/pulse "dist/${package}/pulse"
           install -m644 README.md LICENSE "dist/${package}/"
           install -m644 config/pulse.toml "dist/${package}/config/"
           install -m644 packaging/pulse.service "dist/${package}/packaging/"
-          tar -C dist -czf "dist/${package}.tar.gz" "${package}"
+          tar -C dist -czf "dist/${archive}" "${package}"
+          install -m755 scripts/install.sh dist/install.sh
           rm -rf "dist/${package}"
-          cd dist
-          sha256sum *.tar.gz > SHA256SUMS
+          (
+            cd dist
+            sha256sum "${archive}" install.sh > SHA256SUMS
+            sha256sum --check SHA256SUMS
+            tar -tzf "${archive}" | grep -Fx "${package}/pulse" >/dev/null
+          )
 
       - name: Create GitHub Release
         env:
@@ -83,4 +94,3 @@ jobs:
             --generate-notes \
             --title "Pulse ${GITHUB_REF_NAME}" \
             "${prerelease[@]}"
-

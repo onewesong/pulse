@@ -14,7 +14,7 @@ SERVICE_SOURCE := packaging/pulse.service
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build release fmt fmt-check test clippy check run clean install uninstall tag
+.PHONY: help build release fmt fmt-check test clippy scripts-check check run clean install uninstall tag
 
 help: ## 显示可用命令
 	@awk 'BEGIN {FS = ":.*## "; printf "Pulse 常用命令：\n\n"} /^[a-zA-Z_-]+:.*## / {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -37,7 +37,18 @@ test: ## 运行全部测试
 clippy: ## 运行严格 Clippy 检查
 	$(CARGO) clippy --all-targets -- -D warnings
 
-check: fmt-check test clippy ## 运行提交前的全部质量检查
+scripts-check: ## 检查并测试安装脚本
+	bash -n scripts/install.sh scripts/test-install.sh
+	@if command -v shellcheck >/dev/null 2>&1; then \
+		shellcheck scripts/install.sh scripts/test-install.sh; \
+	elif [[ "$(REQUIRE_SHELLCHECK)" == "1" ]]; then \
+		echo "缺少必要命令：shellcheck" >&2; exit 1; \
+	else \
+		echo "提示：未安装 shellcheck，已跳过静态检查"; \
+	fi
+	bash scripts/test-install.sh
+
+check: fmt-check test clippy scripts-check ## 运行提交前的全部质量检查
 
 run: ## 使用 .data/pulse.db 启动本地开发服务
 	@mkdir -p .data
@@ -66,4 +77,3 @@ tag: ## 创建发布标签，用法：make tag VERSION=0.1.0
 		test "$(VERSION)" = "$$crate_version" || { echo "VERSION=$(VERSION) 与 Cargo.toml 的 $$crate_version 不一致" >&2; exit 1; }
 	git tag -a "v$(VERSION)" -m "Release v$(VERSION)"
 	@echo "标签 v$(VERSION) 已创建；运行 git push origin v$(VERSION) 触发自动发布"
-

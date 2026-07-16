@@ -55,6 +55,23 @@ PULSE_FILTERS__EXCLUDE_LABELS='pulse.ignore=true,team=temporary'
 
 label 选择器支持 `key` 和 `key=value`。`include_labels` 为空时包含所有容器，否则任意一个选择器匹配即可；任意 `exclude_labels` 匹配都会排除该容器。
 
+## 一键安装
+
+一键安装要求 Linux x86_64、systemd 和已运行的 Docker Engine。脚本会下载最新稳定 Release、验证 SHA-256、创建 `pulse` 系统用户，并启用服务：
+
+```bash
+curl -fsSL https://github.com/onewesong/pulse/releases/latest/download/install.sh | sudo bash
+```
+
+指定版本：
+
+```bash
+curl -fsSL https://github.com/onewesong/pulse/releases/latest/download/install.sh \
+  | sudo env VERSION=0.1.1 bash
+```
+
+重复运行脚本会升级二进制并重启服务，但保留现有 `/etc/pulse/config.toml`。安装完成后打开 `http://127.0.0.1:8080`。
+
 ## systemd 安装
 
 ```bash
@@ -62,6 +79,7 @@ cargo build --release
 sudo useradd --system --home /var/lib/pulse --shell /usr/sbin/nologin pulse
 sudo install -Dm755 target/release/pulse /usr/local/bin/pulse
 sudo install -Dm640 config/pulse.toml /etc/pulse/config.toml
+sudo chown root:pulse /etc/pulse/config.toml
 sudo install -Dm644 packaging/pulse.service /etc/systemd/system/pulse.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now pulse
@@ -75,8 +93,8 @@ sudo systemctl enable --now pulse
 
 ```bash
 # 先更新 Cargo.toml 和 Cargo.lock 中的版本并提交
-make tag VERSION=0.1.0
-git push origin v0.1.0
+make tag VERSION=0.1.1
+git push origin v0.1.1
 ```
 
 标签包含预发布后缀时（例如 `v0.2.0-rc.1`），生成的 GitHub Release 会自动标记为 Pre-release。标签版本与 `Cargo.toml` 不一致时，工作流会拒绝发布。
