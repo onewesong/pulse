@@ -3,6 +3,7 @@ SHELL := /bin/bash
 CARGO ?= cargo
 DOCKER ?= docker
 IMAGE ?= pulse:dev
+MUSL_TARGET ?= x86_64-unknown-linux-musl
 PREFIX ?= /usr/local
 SYSCONFDIR ?= /etc
 SYSTEMD_UNIT_DIR ?= /etc/systemd/system
@@ -16,7 +17,7 @@ SERVICE_SOURCE := packaging/pulse.service
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build release fmt fmt-check test clippy scripts-check check run clean install uninstall tag docker-build docker-compose-check docker-up docker-down
+.PHONY: help build release release-static fmt fmt-check test clippy scripts-check check run clean install uninstall tag docker-build docker-compose-check docker-up docker-down
 
 help: ## 显示可用命令
 	@awk 'BEGIN {FS = ":.*## "; printf "Pulse 常用命令：\n\n"} /^[a-zA-Z_-]+:.*## / {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -26,6 +27,11 @@ build: ## 构建开发版本
 
 release: ## 构建优化后的 release 二进制
 	$(CARGO) build --release
+
+release-static: ## 使用 musl 构建静态 release 二进制
+	CC_x86_64_unknown_linux_musl=musl-gcc \
+	CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc \
+	$(CARGO) build --release --locked --target $(MUSL_TARGET)
 
 fmt: ## 格式化 Rust 源码
 	$(CARGO) fmt --all

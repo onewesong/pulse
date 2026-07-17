@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 readonly REPOSITORY="${PULSE_REPOSITORY:-onewesong/pulse}"
 readonly REQUESTED_VERSION="${VERSION:-latest}"
-readonly TARGET="x86_64-unknown-linux-gnu"
+readonly TARGET="x86_64-unknown-linux-musl"
 readonly ARCHIVE_NAME="pulse-${TARGET}.tar.gz"
 readonly INSTALL_ROOT="${PULSE_INSTALL_ROOT:-}"
 readonly DOCKER_SOCKET="${PULSE_DOCKER_SOCKET:-/var/run/docker.sock}"

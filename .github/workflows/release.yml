@@ -30,6 +30,20 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal --component rustfmt,clippy
           rustup default stable
+          rustup target add x86_64-unknown-linux-musl
+
+      - name: Install release tools
+        shell: bash
+        run: |
+          packages=()
+          command -v musl-gcc >/dev/null 2>&1 || packages+=(musl-tools)
+          command -v shellcheck >/dev/null 2>&1 || packages+=(shellcheck)
+          command -v file >/dev/null 2>&1 || packages+=(file)
+          command -v readelf >/dev/null 2>&1 || packages+=(binutils)
+          if (( ${#packages[@]} > 0 )); then
+            sudo apt-get update
+            sudo apt-get install --yes "${packages[@]}"
+          fi
 
       - name: Cache Cargo files
         uses: actions/cache@v4
@@ -53,24 +67,32 @@ jobs:
           fi
 
       - name: Run quality checks
-        run: |
-          if ! command -v shellcheck >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install --yes shellcheck
-          fi
-          REQUIRE_SHELLCHECK=1 make check
+        run: REQUIRE_SHELLCHECK=1 make check
 
-      - name: Build release binary
-        run: cargo build --release --locked
+      - name: Build static release binary
+        env:
+          CC_x86_64_unknown_linux_musl: musl-gcc
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+        run: cargo build --release --locked --target x86_64-unknown-linux-musl
+
+      - name: Verify static binary
+        shell: bash
+        run: |
+          binary="target/x86_64-unknown-linux-musl/release/pulse"
+          file "${binary}"
+          if readelf --program-headers "${binary}" | grep -F "Requesting program interpreter"; then
+            echo "release binary is dynamically linked" >&2
+            exit 1
+          fi
 
       - name: Package release
         shell: bash
         run: |
-          target="x86_64-unknown-linux-gnu"
+          target="x86_64-unknown-linux-musl"
           package="pulse-${GITHUB_REF_NAME}-${target}"
           archive="pulse-${target}.tar.gz"
           mkdir -p "dist/${package}/config" "dist/${package}/packaging"
-          install -m755 target/release/pulse "dist/${package}/pulse"
+          install -m755 "target/${target}/release/pulse" "dist/${package}/pulse"
           install -m644 README.md LICENSE "dist/${package}/"
           install -m644 config/pulse.toml "dist/${package}/config/"
           install -m644 packaging/pulse.service "dist/${package}/packaging/"

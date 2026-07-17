@@ -25,16 +25,16 @@ assert_contains() {
 
 create_release_fixture() {
     local release_dir="$1"
-    local package="pulse-v0.1.1-x86_64-unknown-linux-gnu"
+    local package="pulse-v0.1.2-x86_64-unknown-linux-musl"
     mkdir -p "${release_dir}/${package}/config" "${release_dir}/${package}/packaging"
     cp "${PROJECT_ROOT}/config/pulse.toml" "${release_dir}/${package}/config/"
     cp "${PROJECT_ROOT}/packaging/pulse.service" "${release_dir}/${package}/packaging/"
     cp "${PROJECT_ROOT}/LICENSE" "${release_dir}/${package}/"
-    printf '#!/usr/bin/env bash\nprintf "pulse 0.1.1\\n"\n' >"${release_dir}/${package}/pulse"
+    printf '#!/usr/bin/env bash\nprintf "pulse 0.1.2\\n"\n' >"${release_dir}/${package}/pulse"
     chmod 755 "${release_dir}/${package}/pulse"
-    tar -C "${release_dir}" -czf "${release_dir}/pulse-x86_64-unknown-linux-gnu.tar.gz" "${package}"
+    tar -C "${release_dir}" -czf "${release_dir}/pulse-x86_64-unknown-linux-musl.tar.gz" "${package}"
     rm -rf "${release_dir:?}/${package}"
-    (cd "${release_dir}" && sha256sum pulse-x86_64-unknown-linux-gnu.tar.gz >SHA256SUMS)
+    (cd "${release_dir}" && sha256sum pulse-x86_64-unknown-linux-musl.tar.gz >SHA256SUMS)
 }
 
 create_mock_commands() {
@@ -148,13 +148,13 @@ assert_contains "${INSTALL_ROOT}/etc/pulse/config.toml" "用户自定义配置"
 assert_contains "${TEST_ROOT}/upgrade.log" "保留现有配置"
 [[ "$(grep -c '^useradd ' "${MOCK_STATE}/commands.log")" == 1 ]] || fail "升级时重复创建了用户"
 
-cp "${RELEASE_DIR}/pulse-x86_64-unknown-linux-gnu.tar.gz" "${RELEASE_DIR}/tampered.tar.gz"
-printf 'tampered' >>"${RELEASE_DIR}/pulse-x86_64-unknown-linux-gnu.tar.gz"
+cp "${RELEASE_DIR}/pulse-x86_64-unknown-linux-musl.tar.gz" "${RELEASE_DIR}/tampered.tar.gz"
+printf 'tampered' >>"${RELEASE_DIR}/pulse-x86_64-unknown-linux-musl.tar.gz"
 if run_installer >"${TEST_ROOT}/checksum.log" 2>&1; then
     fail "损坏的发布包未被拒绝"
 fi
 assert_contains "${TEST_ROOT}/checksum.log" "SHA-256 校验失败"
-mv "${RELEASE_DIR}/tampered.tar.gz" "${RELEASE_DIR}/pulse-x86_64-unknown-linux-gnu.tar.gz"
+mv "${RELEASE_DIR}/tampered.tar.gz" "${RELEASE_DIR}/pulse-x86_64-unknown-linux-musl.tar.gz"
 
 if run_installer MOCK_UNAME_M=aarch64 >"${TEST_ROOT}/architecture.log" 2>&1; then
     fail "不支持的架构未被拒绝"
