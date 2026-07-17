@@ -40,10 +40,10 @@ fmt-check: ## 检查 Rust 源码格式
 	$(CARGO) fmt --all --check
 
 test: ## 运行全部测试
-	$(CARGO) test --all-targets
+	$(CARGO) test --locked --all-targets
 
 clippy: ## 运行严格 Clippy 检查
-	$(CARGO) clippy --all-targets -- -D warnings
+	$(CARGO) clippy --locked --all-targets -- -D warnings
 
 scripts-check: ## 检查并测试安装脚本
 	bash -n scripts/install.sh scripts/test-install.sh
@@ -90,8 +90,8 @@ uninstall: ## 删除由 make install 安装的文件
 	rm -f $(DESTDIR)$(SYSCONFDIR)/pulse/config.toml
 	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/pulse.service
 
-tag: ## 创建发布标签，用法：make tag VERSION=0.1.2
-	@test -n "$(VERSION)" || { echo "请指定 VERSION，例如 make tag VERSION=0.1.2" >&2; exit 1; }
+tag: ## 创建发布标签，用法：make tag VERSION=0.1.4
+	@test -n "$(VERSION)" || { echo "请指定 VERSION，例如 make tag VERSION=0.1.4" >&2; exit 1; }
 	@test -z "$$(git status --porcelain)" || { echo "工作区不干净，请先提交变更" >&2; exit 1; }
 	@crate_version="$$(sed -n '/^\[package\]/,/^\[/s/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n1)"; \
 		test "$(VERSION)" = "$$crate_version" || { echo "VERSION=$(VERSION) 与 Cargo.toml 的 $$crate_version 不一致" >&2; exit 1; }
